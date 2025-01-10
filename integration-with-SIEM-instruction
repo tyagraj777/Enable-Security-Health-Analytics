@@ -1,0 +1,46 @@
+Integration Steps with SIEM
+To integrate Google Cloud Pub/Sub with your SIEM:
+
+Create a Service Account
+
+Create a service account that will allow your SIEM system to access the Pub/Sub topic.
+Grant the roles/pubsub.subscriber role to the service account for the Pub/Sub topic.
+
+Terraform example:
+
+hcl
+Copy code
+resource "google_service_account" "siem_service_account" {
+  account_id   = "siem-integration"
+  display_name = "SIEM Integration Service Account"
+}
+
+resource "google_pubsub_subscription" "siem_subscription" {
+  name  = "siem-subscription"
+  topic = google_pubsub_topic.security_notifications.id
+
+  push_config {
+    push_endpoint = var.siem_push_endpoint
+    oidc_token {
+      service_account_email = google_service_account.siem_service_account.email
+    }
+  }
+}
+
+resource "google_project_iam_member" "siem_pubsub_access" {
+  project = var.project_id
+  role    = "roles/pubsub.subscriber"
+  member  = "serviceAccount:${google_service_account.siem_service_account.email}"
+}
+Configure SIEM to Subscribe to the Pub/Sub Topic
+
+Use the SIEM’s documentation to configure it to subscribe to the Pub/Sub topic using the service account credentials.
+For pull-based ingestion, configure the SIEM to poll messages from the subscription.
+Test Integration
+
+Generate test findings in Security Command Center.
+Verify that the SIEM receives and processes the messages.
+Monitor and Troubleshoot
+
+Enable and review audit logs for Pub/Sub and Security Command Center for debugging issues.
+Set up monitoring and alerts for errors in Pub/Sub message delivery.
